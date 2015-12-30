@@ -7,11 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class Container<ITEM> implements Serializable {
+public class Container<ITEM> implements Serializable, IF_Container<ITEM> {
 
 	private final Map<ITEM, Value> items = new HashMap<>();
 	private final List<Booking<ITEM>> bookings = new LinkedList<>();
 
+	@Override
 	public synchronized void transfer(Booking<ITEM> booking) {
 		if (booking.from != this) {
 			throw new IllegalArgumentException("You can only transfer bookings from self container.");
@@ -30,10 +31,12 @@ public class Container<ITEM> implements Serializable {
 		}
 	}
 
+	@Override
 	public synchronized boolean transfer(ITEM item, int amount, Container<ITEM> to) {
 		return this.transfer(item, amount, to, false);
 	}
 
+	@Override
 	public synchronized boolean transfer(ITEM item, int amount, Container<ITEM> to, boolean booking) {
 		if (amount <= 0) {
 			throw new IllegalArgumentException("Only positive amounts can be transfered");
@@ -72,6 +75,7 @@ public class Container<ITEM> implements Serializable {
 		return this.bookings.contains(booking);
 	}
 
+	@Override
 	public synchronized Booking<ITEM> book(ITEM item, int amount, Container<ITEM> to) {
 		if (amount <= 0) {
 			throw new IllegalArgumentException("Only positive amounts can be booked");
@@ -100,16 +104,19 @@ public class Container<ITEM> implements Serializable {
 		this.bookings.remove(booking);
 	}
 
+	@Override
 	public synchronized boolean hasAmountAvailable(ITEM item, int amount) {
 		return this.has(item) && this.amount(item) - this.bookedFromAmount(item, false) >= amount;
 	}
 
+	@Override
 	public synchronized boolean canAddAmount(ITEM item, int amount) {
 		Value value = this.items.get(item);
 		return this.can(item) && this.amount(item) + this.bookedToAmount(item) + amount <= value.max;
 	}
 
 	// TODO test this
+	@Override
 	public synchronized int getMissingAmount(ITEM item) {
 		Value value = this.items.get(item);
 		return value != null ? value.max - (value.amount + bookedToAmount(item)) : 0;
@@ -144,18 +151,22 @@ public class Container<ITEM> implements Serializable {
 		return amount;
 	}
 
+	@Override
 	public synchronized boolean can(ITEM item) {
 		return this.items.get(item) != null;
 	}
 
+	@Override
 	public synchronized boolean has(ITEM item) {
 		return this.amount(item) > 0;
 	}
 
+	@Override
 	public synchronized int amountWithoutHidden(ITEM item) {
 		return amount(item) - bookedFromAmount(item, true);
 	}
 
+	@Override
 	public synchronized int amount(ITEM item) {
 		Value value = this.items.get(item);
 		if (value == null) {
@@ -164,25 +175,30 @@ public class Container<ITEM> implements Serializable {
 		return value.amount;
 	}
 
+	@Override
 	public synchronized Set<ITEM> getItems() {
 		return this.items.keySet();
 	}
 
+	@Override
 	public synchronized void set(ITEM item, int amount, int max) {
 		Value value = this.getOrCreateValue(item);
 		value.amount = amount;
 		value.max = max;
 	}
 
+	@Override
 	public synchronized void set(ITEM item, int amountAndMax) {
 		this.set(item, amountAndMax, amountAndMax);
 	}
 
+	@Override
 	public synchronized void setAmount(ITEM item, int amount) {
 		Value value = this.getOrCreateValue(item);
 		value.amount = amount;
 	}
 
+	@Override
 	public synchronized void setMax(ITEM item, int max) {
 		Value value = this.getOrCreateValue(item);
 		value.max = max;
@@ -197,6 +213,7 @@ public class Container<ITEM> implements Serializable {
 		return value;
 	}
 
+	@Override
 	public synchronized void unchain() {
 		for (Booking<ITEM> booking : this.bookings) {
 			booking.to.removeBooking(booking);
@@ -208,6 +225,7 @@ public class Container<ITEM> implements Serializable {
 	 * A container is empty if there are no bookings and every {@link Value}s
 	 * amount is 0.
 	 */
+	@Override
 	public synchronized boolean isEmpty() {
 		if (!this.bookings.isEmpty()) {
 			return false;

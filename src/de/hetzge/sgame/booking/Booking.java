@@ -30,12 +30,12 @@ public class Booking<ITEM> {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Container<ITEM>> T getFrom() {
+	public <T extends IF_Container> T getFrom() {
 		return (T) this.from;
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Container<ITEM>> T getTo() {
+	public <T extends IF_Container> T getTo() {
 		return (T) this.to;
 	}
 
