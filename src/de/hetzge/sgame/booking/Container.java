@@ -7,15 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * TODO make generic
- */
-public class Container implements Serializable {
+public class Container<ITEM> implements Serializable {
 
-	private final Map<IF_Item, Value> items = new HashMap<>();
-	private final List<Booking> bookings = new LinkedList<>();
+	private final Map<ITEM, Value> items = new HashMap<>();
+	private final List<Booking<ITEM>> bookings = new LinkedList<>();
 
-	public synchronized void transfer(Booking booking) {
+	public synchronized void transfer(Booking<ITEM> booking) {
 		if (booking.from != this) {
 			throw new IllegalArgumentException("You can only transfer bookings from self container.");
 		}
@@ -33,11 +30,11 @@ public class Container implements Serializable {
 		}
 	}
 
-	public synchronized boolean transfer(IF_Item item, int amount, Container to) {
+	public synchronized boolean transfer(ITEM item, int amount, Container<ITEM> to) {
 		return this.transfer(item, amount, to, false);
 	}
 
-	public synchronized boolean transfer(IF_Item item, int amount, Container to, boolean booking) {
+	public synchronized boolean transfer(ITEM item, int amount, Container<ITEM> to, boolean booking) {
 		if (amount <= 0) {
 			throw new IllegalArgumentException("Only positive amounts can be transfered");
 		}
@@ -61,21 +58,21 @@ public class Container implements Serializable {
 		return true;
 	}
 
-	private void createUnlimitedDefaultValue(IF_Item item) {
+	private void createUnlimitedDefaultValue(ITEM item) {
 		Value newValue = new Value();
 		newValue.max = Integer.MAX_VALUE;
 		this.items.put(item, newValue);
 	}
 
-	private boolean hasBooking(IF_Item item, int amount, Container from, Container to) {
-		return this.hasBooking(new Booking(item, amount, from, to));
+	private boolean hasBooking(ITEM item, int amount, Container<ITEM> from, Container<ITEM> to) {
+		return this.hasBooking(new Booking<ITEM>(item, amount, from, to));
 	}
 
-	private boolean hasBooking(Booking booking) {
+	private boolean hasBooking(Booking<ITEM> booking) {
 		return this.bookings.contains(booking);
 	}
 
-	public synchronized Booking book(IF_Item item, int amount, Container to) {
+	public synchronized Booking<ITEM> book(ITEM item, int amount, Container<ITEM> to) {
 		if (amount <= 0) {
 			throw new IllegalArgumentException("Only positive amounts can be booked");
 		}
@@ -87,7 +84,7 @@ public class Container implements Serializable {
 				return null;
 			}
 
-			Booking booking = new Booking(item, amount, this, to);
+			Booking<ITEM> booking = new Booking<ITEM>(item, amount, this, to);
 			this.addBooking(booking);
 			to.addBooking(booking);
 
@@ -95,25 +92,25 @@ public class Container implements Serializable {
 		}
 	}
 
-	protected synchronized void addBooking(Booking booking) {
+	protected synchronized void addBooking(Booking<ITEM> booking) {
 		this.bookings.add(booking);
 	}
 
-	protected synchronized void removeBooking(Booking booking) {
+	protected synchronized void removeBooking(Booking<ITEM> booking) {
 		this.bookings.remove(booking);
 	}
 
-	public synchronized boolean hasAmountAvailable(IF_Item item, int amount) {
+	public synchronized boolean hasAmountAvailable(ITEM item, int amount) {
 		return this.has(item) && this.amount(item) - this.bookedFromAmount(item, false) >= amount;
 	}
 
-	public synchronized boolean canAddAmount(IF_Item item, int amount) {
+	public synchronized boolean canAddAmount(ITEM item, int amount) {
 		Value value = this.items.get(item);
 		return this.can(item) && this.amount(item) + this.bookedToAmount(item) + amount <= value.max;
 	}
 
 	// TODO test this
-	public synchronized int getMissingAmount(IF_Item item) {
+	public synchronized int getMissingAmount(ITEM item) {
 		Value value = this.items.get(item);
 		return value != null ? value.max - (value.amount + bookedToAmount(item)) : 0;
 	}
@@ -121,9 +118,9 @@ public class Container implements Serializable {
 	/**
 	 * Returns the amount of a given item is booked from this container.
 	 */
-	private int bookedFromAmount(IF_Item item, boolean hidden) {
+	private int bookedFromAmount(ITEM item, boolean hidden) {
 		int amount = 0;
-		for (Booking booking : this.bookings) {
+		for (Booking<ITEM> booking : this.bookings) {
 			if (!hidden || booking.hide) {
 				if (booking.from == this && booking.item.equals(item)) {
 					amount += booking.amount;
@@ -137,9 +134,9 @@ public class Container implements Serializable {
 	 * Returns the amount of a given item is reserved to bring to this
 	 * container.
 	 */
-	private int bookedToAmount(IF_Item item) {
+	private int bookedToAmount(ITEM item) {
 		int amount = 0;
-		for (Booking booking : this.bookings) {
+		for (Booking<ITEM> booking : this.bookings) {
 			if (booking.to == this && booking.item.equals(item)) {
 				amount += booking.amount;
 			}
@@ -147,19 +144,19 @@ public class Container implements Serializable {
 		return amount;
 	}
 
-	public synchronized boolean can(IF_Item item) {
+	public synchronized boolean can(ITEM item) {
 		return this.items.get(item) != null;
 	}
 
-	public synchronized boolean has(IF_Item item) {
+	public synchronized boolean has(ITEM item) {
 		return this.amount(item) > 0;
 	}
 
-	public synchronized int amountWithoutHidden(IF_Item item) {
+	public synchronized int amountWithoutHidden(ITEM item) {
 		return amount(item) - bookedFromAmount(item, true);
 	}
 
-	public synchronized int amount(IF_Item item) {
+	public synchronized int amount(ITEM item) {
 		Value value = this.items.get(item);
 		if (value == null) {
 			return 0;
@@ -167,31 +164,31 @@ public class Container implements Serializable {
 		return value.amount;
 	}
 
-	public synchronized Set<IF_Item> getItems() {
+	public synchronized Set<ITEM> getItems() {
 		return this.items.keySet();
 	}
 
-	public synchronized void set(IF_Item item, int amount, int max) {
+	public synchronized void set(ITEM item, int amount, int max) {
 		Value value = this.getOrCreateValue(item);
 		value.amount = amount;
 		value.max = max;
 	}
 
-	public synchronized void set(IF_Item item, int amountAndMax) {
+	public synchronized void set(ITEM item, int amountAndMax) {
 		this.set(item, amountAndMax, amountAndMax);
 	}
 
-	public synchronized void setAmount(IF_Item item, int amount) {
+	public synchronized void setAmount(ITEM item, int amount) {
 		Value value = this.getOrCreateValue(item);
 		value.amount = amount;
 	}
 
-	public synchronized void setMax(IF_Item item, int max) {
+	public synchronized void setMax(ITEM item, int max) {
 		Value value = this.getOrCreateValue(item);
 		value.max = max;
 	}
 
-	private Value getOrCreateValue(IF_Item item) {
+	private Value getOrCreateValue(ITEM item) {
 		Value value = this.items.get(item);
 		if (value == null) {
 			value = new Value();
@@ -201,7 +198,7 @@ public class Container implements Serializable {
 	}
 
 	public synchronized void unchain() {
-		for (Booking booking : this.bookings) {
+		for (Booking<ITEM> booking : this.bookings) {
 			booking.to.removeBooking(booking);
 		}
 		this.bookings.clear();

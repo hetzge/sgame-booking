@@ -1,13 +1,13 @@
 package de.hetzge.sgame.booking;
 
-public class Booking {
-	final IF_Item item;
+public class Booking<ITEM> {
+	final ITEM item;
 	final int amount;
-	final Container from;
-	final Container to;
+	final Container<ITEM> from;
+	final Container<ITEM> to;
 	boolean hide;
 
-	Booking(IF_Item item, int amount, Container from, Container to, boolean hide) {
+	Booking(ITEM item, int amount, Container<ITEM> from, Container<ITEM> to, boolean hide) {
 		if (item == null || from == null || to == null) {
 			throw new IllegalArgumentException("Invalid null parameter. No null values allowed: item->" + item
 					+ ", from->" + from + ", to->" + to);
@@ -25,17 +25,17 @@ public class Booking {
 		this.hide = hide;
 	}
 
-	Booking(IF_Item item, int amount, Container from, Container to) {
+	Booking(ITEM item, int amount, Container<ITEM> from, Container<ITEM> to) {
 		this(item, amount, from, to, false);
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Container> T getFrom() {
+	public <T extends Container<ITEM>> T getFrom() {
 		return (T) this.from;
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends Container> T getTo() {
+	public <T extends Container<ITEM>> T getTo() {
 		return (T) this.to;
 	}
 
@@ -47,15 +47,15 @@ public class Booking {
 		this.hide = false;
 	}
 
-	public Booking createWithOtherFrom(Container newFrom) {
+	public Booking<ITEM> createWithOtherFrom(Container<ITEM> newFrom) {
 		rollback();
-		Booking changeBooking = this.from.book(this.item, this.amount, newFrom);
+		Booking<ITEM> changeBooking = this.from.book(this.item, this.amount, newFrom);
 		if (changeBooking == null) {
 			throw new IllegalStateException();
 		}
 		changeBooking.transfer();
 
-		Booking booking = newFrom.book(this.item, this.amount, this.to);
+		Booking<ITEM> booking = newFrom.book(this.item, this.amount, this.to);
 		if (booking == null) {
 			throw new IllegalStateException();
 		} else {
@@ -63,9 +63,9 @@ public class Booking {
 		}
 	}
 
-	public Booking createWithOtherTo(Container newTo) {
+	public Booking<ITEM> createWithOtherTo(Container<ITEM> newTo) {
 		rollback();
-		Booking booking = this.from.book(this.item, this.amount, newTo);
+		Booking<ITEM> booking = this.from.book(this.item, this.amount, newTo);
 		if (booking == null) {
 			throw new IllegalStateException();
 		} else {
@@ -73,7 +73,7 @@ public class Booking {
 		}
 	}
 
-	public IF_Item getItem() {
+	public ITEM getItem() {
 		return this.item;
 	}
 
@@ -108,7 +108,7 @@ public class Booking {
 		if (this.getClass() != obj.getClass()) {
 			return false;
 		}
-		Booking other = (Booking) obj;
+		Booking<ITEM> other = (Booking<ITEM>) obj;
 		if (this.amount != other.amount) {
 			return false;
 		}
